@@ -13,6 +13,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "cursor-effects": "^1.0.18",
     "framer-motion": "^12.31.0",
     "lucide-react": "^0.263.1",
     "mathjs": "^15.1.0",

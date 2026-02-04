@@ -72,12 +72,12 @@ body {
   transition: cursor 0.1s ease;
 }
 
-/* Classic Arrow Cursor beim Glitch - Clean & Vintage */
+/* Abgehackte Hand Cursor beim Glitch */
 body.pixel-cursor,
 body.pixel-cursor *,
 body.pixel-cursor a,
 body.pixel-cursor button {
-  cursor: url('data:image/svg+xml;utf8,<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M3 3 L3 27 L11 19 L15 27 L18 26 L14 18 L23 18 Z" fill="%23ffffff" stroke="%23000000" stroke-width="1"/></svg>') 3 3, auto !important;
+  cursor: var(--custom-cursor), auto !important;
 }
 
 * { cursor: inherit; }
