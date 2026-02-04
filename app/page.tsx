@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Github, Linkedin, Mail, ArrowDown, X, ChevronLeft, ChevronRight, Play, ExternalLink, Menu } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import KeyboardScroll from '@/components/KeyboardScroll'
+import GradualBlur from '@/components/GradualBlur'
 
 // ============================================
 // CUSTOM HOOKS
@@ -560,6 +561,14 @@ export default function Portfolio() {
       const progress = Math.min(1, Math.max(0, scrollY / heroHeight))
 
       setHeroScrollProgress(progress)
+
+      // Dynamic cursor change bei Glitch-Transition
+      if (progress > 0.35) {
+        document.body.classList.add('pixel-cursor')
+      } else {
+        document.body.classList.remove('pixel-cursor')
+      }
+
       // Schwarzer Balken wenn Text und Logo sich überschneiden würden (bei ca. 1.7x viewport)
       setIsScrolled(scrollY > window.innerHeight * 1.7)
     }
@@ -935,7 +944,7 @@ Letterpress work includes custom type design and traditional printing techniques
       </div>
 
       {/* Selected Works - IMMEDIATELY AFTER HERO */}
-      <section ref={worksRef} id="works" className="section works">
+      <section ref={worksRef} id="works" className="section works" style={{ position: 'relative', overflow: 'hidden' }}>
         <div className="container-wide">
           <h2 className={`section-title fade-in-up ${worksVisible ? 'visible' : ''}`}>
             Selected Works
@@ -954,6 +963,17 @@ Letterpress work includes custom type design and traditional printing techniques
             ))}
           </div>
         </div>
+
+        <GradualBlur
+          target="parent"
+          position="bottom"
+          height="7rem"
+          strength={2}
+          divCount={5}
+          curve="bezier"
+          exponential
+          opacity={1}
+        />
       </section>
 
       {/* About - Shortened & Focused */}
@@ -983,7 +1003,7 @@ Letterpress work includes custom type design and traditional printing techniques
       </section>
 
       {/* Other Lives - Reframed as Context */}
-      <section ref={otherLivesRef} className="section other-lives">
+      <section ref={otherLivesRef} className="section other-lives" style={{ position: 'relative', overflow: 'hidden' }}>
         <div className="container-wide">
           <h2 className={`section-title fade-in-up ${otherLivesVisible ? 'visible' : ''}`}>
             Beyond Design
@@ -1004,6 +1024,17 @@ Letterpress work includes custom type design and traditional printing techniques
             ))}
           </div>
         </div>
+
+        <GradualBlur
+          target="parent"
+          position="bottom"
+          height="7rem"
+          strength={2}
+          divCount={5}
+          curve="bezier"
+          exponential
+          opacity={1}
+        />
       </section>
 
       {/* Contact */}
