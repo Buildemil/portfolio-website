@@ -539,6 +539,7 @@ export default function Portfolio() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [heroScrollProgress, setHeroScrollProgress] = useState(0)
+  const [animationFrame, setAnimationFrame] = useState(0)
 
   const [aboutRef, aboutVisible] = useScrollAnimation()
   const [worksRef, worksVisible] = useScrollAnimation()
@@ -754,15 +755,14 @@ Letterpress work includes custom type design and traditional printing techniques
   const allProjects = [...selectedWorks, ...otherLives]
 
   const clientLogos = [
-    { image: "/images/logos/LUZI-logo.png", alt: "LUZI Fragrance Compounds" },
-    { image: "/images/logos/ard.jpg", alt: "ARD ZDF MDR" },
-    { image: "/images/logos/BMW_Group.jpeg", alt: "BMW Group" },
-    { image: "/images/logos/feuerwehr.png", alt: "Feuerwehr München" },
-    { image: "/images/logos/joyn-logo.jpg", alt: "Joyn Logo" },
-    { image: "/images/logos/azmo.png", alt: "Augenzentrum München Ost" },
-    { image: "/images/logos/theater.png", alt: "Theaterakademie August Everding" },
-    { image: "/images/logos/hff.jpg", alt: "HFF München" },
-    
+    { image: "/images/logos/LUZI-logo.png", alt: "LUZI Fragrance Compounds", name: "LUZI Fragrance Compounds" },
+    { image: "/images/logos/ard.jpg", alt: "ARD ZDF MDR", name: "ARD / ZDF / MDR" },
+    { image: "/images/logos/BMW_Group.jpeg", alt: "BMW Group", name: "BMW Group" },
+    { image: "/images/logos/feuerwehr.png", alt: "Feuerwehr München", name: "Feuerwehr München" },
+    { image: "/images/logos/joyn-logo.jpg", alt: "Joyn Logo", name: "Joyn" },
+    { image: "/images/logos/azmo.png", alt: "Augenzentrum München Ost", name: "Augenzentrum München Ost" },
+    { image: "/images/logos/theater.png", alt: "Theaterakademie August Everding", name: "Theaterakademie August Everding" },
+    { image: "/images/logos/hff.jpg", alt: "HFF München", name: "HFF München" },
   ]
 
   const skills = [
@@ -914,7 +914,7 @@ Letterpress work includes custom type design and traditional printing techniques
 
       {/* Keyboard Scroll Animation with Hero Overlay */}
       <div className="keyboard-hero-wrapper">
-        <KeyboardScroll />
+        <KeyboardScroll onFrameChange={setAnimationFrame} />
 
         {/* Hero Content Overlay */}
         <div className="hero-overlay">
@@ -942,6 +942,7 @@ Letterpress work includes custom type design and traditional printing techniques
         </div>
       </div>
 
+      {/* Selected Works - IMMEDIATELY AFTER HERO */}
       {/* Selected Works - IMMEDIATELY AFTER HERO */}
       <section ref={worksRef} id="works" className="section works">
         <div className="container-wide">
@@ -1063,6 +1064,7 @@ Letterpress work includes custom type design and traditional printing techniques
                   height={240}
                   className="client-logo-img"
                 />
+                <span className="client-name">{logo.name}</span>
               </div>
             ))}
           </div>

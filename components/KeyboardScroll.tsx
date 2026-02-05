@@ -1,20 +1,24 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { useScroll, motion } from 'framer-motion'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { useScroll } from 'framer-motion'
 
 const FRAME_COUNT = 82
 const BASE_PATH = '/images/Emil_Header_sequence/watermark_removed_2cf30d6a-2765-40f9-a2f2-e97f99fd4ada_'
 
-export default function KeyboardScroll() {
+interface KeyboardScrollProps {
+  onFrameChange?: (frame: number) => void
+}
+
+export default function KeyboardScroll({ onFrameChange }: KeyboardScrollProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const imagesRef = useRef<HTMLImageElement[]>([])
-  const requestRef = useRef<number>()
   const [imagesLoaded, setImagesLoaded] = useState(false)
-  const [currentFrame, setCurrentFrame] = useState(0)
-  const [targetFrame, setTargetFrame] = useState(0)
-  const smoothFrameRef = useRef(0)
+
+  const displayFrameRef = useRef(0)
+  const targetFrameRef = useRef(0)
+  const lastRenderFrameRef = useRef(-1)
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -64,76 +68,101 @@ export default function KeyboardScroll() {
     return () => window.removeEventListener('resize', resize)
   }, [])
 
-  // Render frame
-  useEffect(() => {
-    if (!imagesLoaded || !canvasRef.current) return
+  // Render a specific frame
+  const renderFrame = useCallback((frameIndex: number) => {
+    if (!canvasRef.current) return
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const img = imagesRef.current[currentFrame]
+    const img = imagesRef.current[frameIndex]
     if (!img?.complete) return
 
-    const render = () => {
-      // Clear
-      ctx.fillStyle = '#000000'
-      ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight)
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight)
 
-      // Calculate cover fit (fill entire canvas)
-      const canvasAspect = canvas.offsetWidth / canvas.offsetHeight
-      const imgAspect = img.width / img.height
+    const canvasAspect = canvas.offsetWidth / canvas.offsetHeight
+    const imgAspect = img.width / img.height
 
-      let drawWidth, drawHeight, offsetX, offsetY
+    let drawWidth, drawHeight, offsetX, offsetY
 
-      if (imgAspect > canvasAspect) {
-        // Image is wider - fit to height and crop sides
-        drawHeight = canvas.offsetHeight
-        drawWidth = canvas.offsetHeight * imgAspect
-        offsetX = (canvas.offsetWidth - drawWidth) / 2
-        offsetY = 0
-      } else {
-        // Image is taller - fit to width and crop top/bottom
-        drawWidth = canvas.offsetWidth
-        drawHeight = canvas.offsetWidth / imgAspect
-        offsetX = 0
-        offsetY = (canvas.offsetHeight - drawHeight) / 2
-      }
-
-      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight)
+    if (imgAspect > canvasAspect) {
+      drawHeight = canvas.offsetHeight
+      drawWidth = canvas.offsetHeight * imgAspect
+      offsetX = (canvas.offsetWidth - drawWidth) / 2
+      offsetY = 0
+    } else {
+      drawWidth = canvas.offsetWidth
+      drawHeight = canvas.offsetWidth / imgAspect
+      offsetX = 0
+      offsetY = (canvas.offsetHeight - drawHeight) / 2
     }
 
-    if (requestRef.current) {
-      cancelAnimationFrame(requestRef.current)
-    }
+    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight)
+  }, [])
 
-    requestRef.current = requestAnimationFrame(render)
-
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current)
-      }
-    }
-  }, [currentFrame, imagesLoaded])
-
-  // Smooth frame interpolation
+  // Frame 0 sofort rendern wenn Bilder geladen sind (kein Black Screen)
   useEffect(() => {
-    let rafId: number
-
-    const lerp = (start: number, end: number, factor: number) => {
-      return start + (end - start) * factor
+    if (imagesLoaded) {
+      renderFrame(0)
+      lastRenderFrameRef.current = 0
     }
+  }, [imagesLoaded, renderFrame])
 
-    const animate = () => {
-      const smoothingFactor = 0.15 // Lower = smoother/slower, Higher = faster/snappier
-      smoothFrameRef.current = lerp(smoothFrameRef.current, targetFrame, smoothingFactor)
+  // Animation loop: Lerp für DJ-Turntable-Feeling + Speed-Cap für schnelle Swipes
+  useEffect(() => {
+    if (!imagesLoaded) return
 
-      const roundedFrame = Math.round(smoothFrameRef.current)
-      if (roundedFrame !== currentFrame) {
-        setCurrentFrame(Math.min(FRAME_COUNT - 1, Math.max(0, roundedFrame)))
+    let rafId: number
+    const FPS = 30
+    const frameInterval = 1000 / FPS
+    let lastFrameTime = 0
+
+    // Max 2 Frames pro Tick = min ~1.4s für volle Sequenz
+    // Aber Lerp macht normales Scrollen responsive
+    const MAX_SPEED = 2.0
+
+    const animate = (timestamp: number) => {
+      rafId = requestAnimationFrame(animate)
+
+      const elapsed = timestamp - lastFrameTime
+      if (elapsed < frameInterval) return
+      lastFrameTime = timestamp - (elapsed % frameInterval)
+
+      const target = targetFrameRef.current
+      const current = displayFrameRef.current
+      const distance = target - current
+
+      if (Math.abs(distance) < 0.01) return
+
+      // Lerp für responsives Scrollen (Turntable-Feeling)
+      const smoothingFactor = 0.12
+      let step = distance * smoothingFactor
+
+      // Speed-Cap: egal wie weit das Ziel weg ist, max 2 Frames pro Tick
+      if (Math.abs(step) > MAX_SPEED) {
+        step = Math.sign(step) * MAX_SPEED
       }
 
-      rafId = requestAnimationFrame(animate)
+      // Mindest-Bewegung damit es nicht ewig kriecht
+      if (Math.abs(step) < 0.05 && Math.abs(distance) > 0.05) {
+        step = Math.sign(distance) * 0.05
+      }
+
+      displayFrameRef.current = current + step
+
+      const roundedFrame = Math.round(displayFrameRef.current)
+      const clampedFrame = Math.min(FRAME_COUNT - 1, Math.max(0, roundedFrame))
+
+      if (clampedFrame !== lastRenderFrameRef.current) {
+        lastRenderFrameRef.current = clampedFrame
+        renderFrame(clampedFrame)
+
+        if (onFrameChange) {
+          onFrameChange(clampedFrame)
+        }
+      }
     }
 
     rafId = requestAnimationFrame(animate)
@@ -141,13 +170,13 @@ export default function KeyboardScroll() {
     return () => {
       if (rafId) cancelAnimationFrame(rafId)
     }
-  }, [targetFrame, currentFrame])
+  }, [imagesLoaded, renderFrame, onFrameChange])
 
   // Update target frame on scroll
   useEffect(() => {
     const unsubscribe = scrollYProgress.on('change', (progress) => {
       const frameIndex = Math.min(FRAME_COUNT - 1, Math.max(0, progress * FRAME_COUNT))
-      setTargetFrame(frameIndex)
+      targetFrameRef.current = frameIndex
     })
 
     return unsubscribe
